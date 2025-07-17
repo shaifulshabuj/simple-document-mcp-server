@@ -6,6 +6,12 @@
       "cwd": ".",
       "env": {
         "PYTHONPATH": "."
+      },
+      "metadata": {
+        "author": "Shaiful Islam Shabuj",
+        "repository": "https://github.com/shaifulshabuj/simple-document-mcp-server",
+        "version": "1.0.0",
+        "description": "Document processing and search server with multi-language support"
       }
     }
   }
