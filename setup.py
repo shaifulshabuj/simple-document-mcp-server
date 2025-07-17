@@ -27,8 +27,8 @@ except FileNotFoundError:
 setup(
     name="simple-document-mcp-server",
     version="1.0.0",
-    author="Me",
-    author_email="me@example.com",
+    author="Shaiful Islam Shabuj",
+    author_email="shaiful.shabuj@example.com",
     description="A minimal MCP server for document processing and search with multi-language support",
     long_description=long_description,
     long_description_content_type="text/markdown",

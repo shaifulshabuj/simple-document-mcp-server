@@ -226,6 +226,12 @@ options:
      Context: ...server can **processing**: - PDF files...
 ```
 
+## 👨‍💻 Author
+
+**Shaiful Islam Shabuj**
+- GitHub: [@shaifulshabuj](https://github.com/shaifulshabuj)
+- Repository: [simple-document-mcp-server](https://github.com/shaifulshabuj/simple-document-mcp-server)
+
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -236,7 +242,9 @@ options:
 
 ## 📝 License
 
-This project is open source. Feel free to use, modify, and distribute.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2024 Shaiful Islam Shabuj
 
 ## 🆘 Troubleshooting
 
