@@ -1,0 +1,70 @@
+{
+  "name": "simple-document-mcp-server",
+  "version": "1.0.0",
+  "description": "A minimal MCP server for document processing and search with multi-language support",
+  "main": "simple_mcp_server.py",
+  "scripts": {
+    "start": "python simple_mcp_server.py",
+    "demo": "python simple_client.py demo",
+    "test": "python simple_client.py demo --dir test_docs",
+    "install-deps": "pip install -r requirements.txt"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "document-processing",
+    "search",
+    "multilingual",
+    "pdf",
+    "docx",
+    "xlsx",
+    "txt",
+    "python"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shaifulshabuj/simple-document-mcp-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/shaifulshabuj/simple-document-mcp-server/issues"
+  },
+  "homepage": "https://github.com/shaifulshabuj/simple-document-mcp-server#readme",
+  "engines": {
+    "python": ">=3.8"
+  },
+  "mcp": {
+    "server": {
+      "name": "simple-document-server",
+      "version": "1.0.0",
+      "description": "Document processing and search server",
+      "command": "python",
+      "args": ["simple_mcp_server.py"],
+      "tools": [
+        {
+          "name": "scan_documents",
+          "description": "Scan and index all documents in the documents directory"
+        },
+        {
+          "name": "search_documents", 
+          "description": "Search for text within the indexed documents"
+        },
+        {
+          "name": "list_documents",
+          "description": "List all processed documents with their metadata"
+        },
+        {
+          "name": "get_document_stats",
+          "description": "Get statistics about the document collection"
+        },
+        {
+          "name": "get_document_content",
+          "description": "Get the full content of a specific document"
+        }
+      ],
+      "supportedFormats": ["pdf", "docx", "xlsx", "txt"],
+      "supportedLanguages": ["en", "ja", "bn", "auto-detect"]
+    }
+  }
+}

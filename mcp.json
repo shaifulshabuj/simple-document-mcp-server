@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "simple-document-server": {
+      "command": "python",
+      "args": ["simple_mcp_server.py"],
+      "cwd": ".",
+      "env": {
+        "PYTHONPATH": "."
+      }
+    }
+  }
+}
