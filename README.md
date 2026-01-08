@@ -4,15 +4,18 @@ A minimal MCP (Model Context Protocol) server for document processing and search
 
 ## 🎯 Features
 
-- **Multi-format Support**: PDF, DOCX, XLSX, and TXT files
+- **Multi-format Support**: PDF, DOCX, XLSX, TXT, CSV, JSON, and Markdown files
 - **Multi-language Support**: English, Japanese, Bangla (Bengali), and more
 - **Full-text Search**: Search across all indexed documents with context
+- **Regex Search**: Advanced pattern matching with regular expressions
+- **Smart Caching**: Intelligent file change detection for optimal performance
 - **Document Metadata**: Extract file type, language, size, and modification date
 - **Interactive Client**: Easy-to-use command-line interface
 - **Flexible Directory**: Custom documents directory via command-line arguments
 - **Configurable Logging**: Adjustable log levels (DEBUG, INFO, WARNING, ERROR)
 - **Error Handling**: Robust error handling and logging
 - **Auto-create Directories**: Automatically creates missing document directories
+- **Comprehensive Testing**: Full test suite with pytest
 
 ## 🚀 Quick Start
 
@@ -88,13 +91,14 @@ docmcp/
 
 ## 🔧 MCP Tools
 
-The server provides 5 MCP tools:
+The server provides 6 MCP tools:
 
 1. **scan_documents**: Index all documents in the documents directory
 2. **search_documents**: Search for text with configurable result limits
-3. **list_documents**: List all processed documents with metadata
-4. **get_document_stats**: Get collection statistics (size, languages, types)
-5. **get_document_content**: Retrieve full content of a specific document
+3. **search_documents_regex**: Advanced pattern search using regular expressions
+4. **list_documents**: List all processed documents with metadata
+5. **get_document_stats**: Get collection statistics (size, languages, types)
+6. **get_document_content**: Retrieve full content of a specific document
 
 ## 🌍 Language Support
 
@@ -113,14 +117,37 @@ The server automatically detects document language using `langdetect`. Supported
 | `.docx` | Word Documents | python-docx |
 | `.xlsx` | Excel Spreadsheets | openpyxl |
 | `.txt` | Text Files | Built-in (multi-encoding) |
+| `.csv` | CSV Files | csv (built-in) |
+| `.json` | JSON Files | json (built-in) |
+| `.md`, `.markdown` | Markdown Files | markdown |
 
 ## 🔍 Search Features
 
 - **Full-text search** across all document content
+- **Regex search** with advanced pattern matching
 - **Context highlighting** around matches
 - **Multiple matches** per document with position tracking
 - **Result limiting** to prevent overwhelming output
 - **Case-insensitive** search
+- **Smart caching** with automatic file change detection
+
+## 🧪 Testing
+
+Run the comprehensive test suite:
+
+```bash
+# Install test dependencies
+pip install -r requirements.txt
+
+# Run all tests
+pytest tests/ -v
+
+# Run tests with coverage
+pytest tests/ --cov=simple_mcp_server --cov-report=html
+
+# Run specific test file
+pytest tests/test_document_processor.py -v
+```
 
 ## 🛠️ Development
 

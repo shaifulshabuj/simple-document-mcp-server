@@ -64,6 +64,10 @@ documents/
 test_documents/
 temp_docs/
 
+# Test files
+test_improvements.py
+IMPROVEMENTS_SUMMARY.md
+
 # MCP specific
 .mcp_cache/
 *.mcp.log

@@ -24,6 +24,8 @@ try:
     import openpyxl
     from langdetect import detect
     import re
+    import csv
+    import markdown
 except ImportError as e:
     print(f"Missing required dependency: {e}")
     print("Please install dependencies with: pip install -r requirements.txt")
@@ -45,12 +47,13 @@ class DocumentInfo:
     last_modified: float
 
 class SimpleDocumentProcessor:
-    """Document processor for multiple formats"""
+    """Document processor for multiple formats with intelligent caching"""
     
     def __init__(self, documents_dir: str = "./documents"):
         self.documents_dir = Path(documents_dir)
         self.documents_dir.mkdir(exist_ok=True)
         self.document_cache: Dict[str, DocumentInfo] = {}
+        self.file_timestamps: Dict[str, float] = {}
         
     def extract_text_from_pdf(self, file_path: Path) -> str:
         """Extract text from PDF file"""
@@ -118,6 +121,67 @@ class SimpleDocumentProcessor:
         logger.error(f"Could not read {file_path} with any encoding")
         return ""
     
+    def extract_text_from_csv(self, file_path: Path) -> str:
+        """Extract text from CSV file with encoding support"""
+        encodings = ['utf-8', 'utf-16', 'latin-1']
+        
+        for encoding in encodings:
+            try:
+                text = ""
+                with open(file_path, 'r', encoding=encoding, newline='') as file:
+                    # Try to detect if file has headers
+                    sample = file.read(1024)
+                    file.seek(0)
+                    
+                    try:
+                        has_header = csv.Sniffer().has_header(sample)
+                    except csv.Error:
+                        has_header = True  # Default to treating first row as header
+                    
+                    csv_reader = csv.reader(file)
+                    for row_num, row in enumerate(csv_reader, 1):
+                        if row_num == 1 and has_header:
+                            text += "Headers: " + " | ".join(row) + "\n\n"
+                        else:
+                            text += " | ".join(row) + "\n"
+                return text.strip()
+            except UnicodeDecodeError:
+                continue
+            except Exception as e:
+                logger.error(f"Error reading CSV {file_path} with {encoding}: {e}")
+                continue
+        
+        logger.error(f"Could not read CSV {file_path} with any encoding")
+        return ""
+    
+    def extract_text_from_json(self, file_path: Path) -> str:
+        """Extract text from JSON file"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                data = json.load(file)
+                # Convert JSON to readable text
+                text = json.dumps(data, indent=2, ensure_ascii=False)
+                return text
+        except Exception as e:
+            logger.error(f"Error reading JSON {file_path}: {e}")
+            return ""
+    
+    def extract_text_from_markdown(self, file_path: Path) -> str:
+        """Extract text from Markdown file"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                md_content = file.read()
+                # Convert markdown to plain text (removes formatting)
+                html = markdown.markdown(md_content)
+                # More robust HTML tag removal - handles tags with attributes
+                text = re.sub(r'<[^<>]+>', '', html)
+                # Clean up extra whitespace
+                text = re.sub(r'\s+', ' ', text)
+                return text.strip()
+        except Exception as e:
+            logger.error(f"Error reading Markdown {file_path}: {e}")
+            return ""
+    
     def detect_language(self, text: str) -> str:
         """Detect language of text"""
         try:
@@ -131,9 +195,20 @@ class SimpleDocumentProcessor:
             return "unknown"
     
     def process_document(self, file_path: Path) -> Optional[DocumentInfo]:
-        """Process a single document"""
+        """Process a single document with cache validation"""
         if not file_path.exists():
             return None
+        
+        # Check if file is in cache and hasn't been modified
+        file_path_str = str(file_path)
+        stat = file_path.stat()
+        current_mtime = stat.st_mtime
+        
+        if (file_path_str in self.document_cache and 
+            file_path_str in self.file_timestamps and
+            self.file_timestamps[file_path_str] == current_mtime):
+            logger.debug(f"Using cached version of {file_path}")
+            return self.document_cache[file_path_str]
         
         file_extension = file_path.suffix.lower()
         
@@ -143,6 +218,10 @@ class SimpleDocumentProcessor:
             '.docx': (self.extract_text_from_docx, "Word Document"),
             '.xlsx': (self.extract_text_from_xlsx, "Excel Spreadsheet"),
             '.txt': (self.extract_text_from_txt, "Text File"),
+            '.csv': (self.extract_text_from_csv, "CSV File"),
+            '.json': (self.extract_text_from_json, "JSON File"),
+            '.md': (self.extract_text_from_markdown, "Markdown File"),
+            '.markdown': (self.extract_text_from_markdown, "Markdown File"),
         }
         
         if file_extension not in extractors:
@@ -173,15 +252,16 @@ class SimpleDocumentProcessor:
             last_modified=stat.st_mtime
         )
         
-        # Cache the document
+        # Cache the document with timestamp
         self.document_cache[str(file_path)] = doc_info
+        self.file_timestamps[str(file_path)] = current_mtime
         
         return doc_info
     
     def scan_documents(self) -> List[DocumentInfo]:
         """Scan and process all documents in the directory"""
         documents = []
-        supported_extensions = ['.pdf', '.docx', '.xlsx', '.txt']
+        supported_extensions = ['.pdf', '.docx', '.xlsx', '.txt', '.csv', '.json', '.md', '.markdown']
         
         logger.info(f"Scanning directory: {self.documents_dir}")
         
@@ -234,6 +314,67 @@ class SimpleDocumentProcessor:
                         "file_type": doc_info.file_type,
                         "context": context_highlight,
                         "position": pos,
+                        "match_number": i + 1,
+                        "total_matches": len(matches),
+                        "size": doc_info.size
+                    })
+                    
+                    if len(results) >= max_results:
+                        break
+            
+            if len(results) >= max_results:
+                break
+        
+        return results
+    
+    def search_documents_regex(self, pattern: str, max_results: int = 50) -> List[Dict[str, Any]]:
+        """Search for text in documents using regex patterns"""
+        results = []
+        
+        try:
+            regex = re.compile(pattern, re.IGNORECASE | re.MULTILINE)
+        except re.error as e:
+            logger.error(f"Invalid regex pattern: {e}")
+            return [{"error": f"Invalid regex pattern: {e}"}]
+        
+        for doc_info in self.document_cache.values():
+            # Find all matches
+            matches = []
+            for match in regex.finditer(doc_info.content):
+                matches.append({
+                    "start": match.start(),
+                    "end": match.end(),
+                    "matched_text": match.group(0)
+                })
+                if len(matches) >= 5:  # Limit matches per document
+                    break
+            
+            if matches:
+                for i, match in enumerate(matches):
+                    # Get context around the match
+                    context_start = max(0, match["start"] - 150)
+                    context_end = min(len(doc_info.content), match["end"] + 150)
+                    context = doc_info.content[context_start:context_end]
+                    
+                    # Highlight the match in context using position-based approach
+                    # Calculate relative position within context window
+                    match_start_in_context = match["start"] - context_start
+                    match_end_in_context = match["end"] - context_start
+                    
+                    context_highlight = (
+                        context[:match_start_in_context] +
+                        f"**{match['matched_text']}**" +
+                        context[match_end_in_context:]
+                    )
+                    
+                    results.append({
+                        "filename": doc_info.filename,
+                        "path": doc_info.path,
+                        "language": doc_info.language,
+                        "file_type": doc_info.file_type,
+                        "context": context_highlight,
+                        "position": match["start"],
+                        "matched_text": match["matched_text"],
                         "match_number": i + 1,
                         "total_matches": len(matches),
                         "size": doc_info.size
@@ -308,6 +449,25 @@ async def handle_list_tools() -> list[types.Tool]:
             }
         ),
         types.Tool(
+            name="search_documents_regex",
+            description="Search for text within documents using regex patterns",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "pattern": {
+                        "type": "string",
+                        "description": "Regular expression pattern to search for"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results to return (default: 50)",
+                        "default": 50
+                    }
+                },
+                "required": ["pattern"]
+            }
+        ),
+        types.Tool(
             name="list_documents",
             description="List all processed documents with their metadata",
             inputSchema={
@@ -378,6 +538,23 @@ async def handle_call_tool(
             result = {
                 "status": "success",
                 "query": query,
+                "results_count": len(results),
+                "results": results
+            }
+            
+            return [types.TextContent(type="text", text=json.dumps(result, indent=2, ensure_ascii=False))]
+        
+        elif name == "search_documents_regex":
+            if not arguments or "pattern" not in arguments:
+                return [types.TextContent(type="text", text='{"error": "pattern parameter is required"}')]
+            
+            pattern = arguments["pattern"]
+            max_results = arguments.get("max_results", 50)
+            results = doc_processor.search_documents_regex(pattern, max_results)
+            
+            result = {
+                "status": "success",
+                "pattern": pattern,
                 "results_count": len(results),
                 "results": results
             }
@@ -479,7 +656,7 @@ Examples:
     parser.add_argument(
         "--version",
         action="version",
-        version="Simple Document MCP Server 1.0.0"
+        version="Simple Document MCP Server 1.1.0"
     )
     
     return parser.parse_args()
@@ -519,7 +696,7 @@ async def main():
             write_stream,
             InitializationOptions(
                 server_name="simple-document-server",
-                server_version="1.0.0",
+                server_version="1.1.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
                     experimental_capabilities={},

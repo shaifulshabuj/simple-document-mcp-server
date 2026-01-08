@@ -1,12 +1,14 @@
 {
   "name": "simple-document-mcp-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A minimal MCP server for document processing and search with multi-language support",
   "main": "simple_mcp_server.py",
   "scripts": {
     "start": "python simple_mcp_server.py",
     "demo": "python simple_client.py demo",
-    "test": "python simple_client.py demo --dir test_docs",
+    "test": "pytest tests/ -v",
+    "test-coverage": "pytest tests/ --cov=simple_mcp_server --cov-report=html",
+    "test-improvements": "python test_improvements.py",
     "install-deps": "pip install -r requirements.txt"
   },
   "keywords": [
@@ -14,12 +16,17 @@
     "model-context-protocol",
     "document-processing",
     "search",
+    "regex",
     "multilingual",
     "pdf",
     "docx",
     "xlsx",
     "txt",
-    "python"
+    "csv",
+    "json",
+    "markdown",
+    "python",
+    "caching"
   ],
   "author": "Shaiful Islam Shabuj",
   "license": "MIT",
@@ -37,8 +44,8 @@
   "mcp": {
     "server": {
       "name": "simple-document-server",
-      "version": "1.0.0",
-      "description": "Document processing and search server",
+      "version": "1.1.0",
+      "description": "Document processing and search server with advanced features",
       "command": "python",
       "args": ["simple_mcp_server.py"],
       "tools": [
@@ -49,6 +56,10 @@
         {
           "name": "search_documents", 
           "description": "Search for text within the indexed documents"
+        },
+        {
+          "name": "search_documents_regex",
+          "description": "Search for text using regular expressions"
         },
         {
           "name": "list_documents",
@@ -63,8 +74,9 @@
           "description": "Get the full content of a specific document"
         }
       ],
-      "supportedFormats": ["pdf", "docx", "xlsx", "txt"],
-      "supportedLanguages": ["en", "ja", "bn", "auto-detect"]
+      "supportedFormats": ["pdf", "docx", "xlsx", "txt", "csv", "json", "md", "markdown"],
+      "supportedLanguages": ["en", "ja", "bn", "auto-detect"],
+      "features": ["caching", "regex-search", "multilingual", "multi-format"]
     }
   }
 }

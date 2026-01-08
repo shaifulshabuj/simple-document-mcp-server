@@ -6,6 +6,12 @@ PyPDF2>=3.0.0
 python-docx>=0.8.11
 openpyxl>=3.1.0
 langdetect>=1.0.9
+markdown>=3.4.0
 
 # Additional utilities (optional)
 pathlib2>=2.3.7
+
+# Testing dependencies
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
