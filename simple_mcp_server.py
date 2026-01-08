@@ -122,20 +122,37 @@ class SimpleDocumentProcessor:
         return ""
     
     def extract_text_from_csv(self, file_path: Path) -> str:
-        """Extract text from CSV file"""
-        try:
-            text = ""
-            with open(file_path, 'r', encoding='utf-8', newline='') as file:
-                csv_reader = csv.reader(file)
-                for row_num, row in enumerate(csv_reader, 1):
-                    if row_num == 1:
-                        text += "Headers: " + " | ".join(row) + "\n\n"
-                    else:
-                        text += " | ".join(row) + "\n"
-            return text.strip()
-        except Exception as e:
-            logger.error(f"Error reading CSV {file_path}: {e}")
-            return ""
+        """Extract text from CSV file with encoding support"""
+        encodings = ['utf-8', 'utf-16', 'latin-1']
+        
+        for encoding in encodings:
+            try:
+                text = ""
+                with open(file_path, 'r', encoding=encoding, newline='') as file:
+                    # Try to detect if file has headers
+                    sample = file.read(1024)
+                    file.seek(0)
+                    
+                    try:
+                        has_header = csv.Sniffer().has_header(sample)
+                    except csv.Error:
+                        has_header = True  # Default to treating first row as header
+                    
+                    csv_reader = csv.reader(file)
+                    for row_num, row in enumerate(csv_reader, 1):
+                        if row_num == 1 and has_header:
+                            text += "Headers: " + " | ".join(row) + "\n\n"
+                        else:
+                            text += " | ".join(row) + "\n"
+                return text.strip()
+            except UnicodeDecodeError:
+                continue
+            except Exception as e:
+                logger.error(f"Error reading CSV {file_path} with {encoding}: {e}")
+                continue
+        
+        logger.error(f"Could not read CSV {file_path} with any encoding")
+        return ""
     
     def extract_text_from_json(self, file_path: Path) -> str:
         """Extract text from JSON file"""
@@ -156,8 +173,10 @@ class SimpleDocumentProcessor:
                 md_content = file.read()
                 # Convert markdown to plain text (removes formatting)
                 html = markdown.markdown(md_content)
-                # Simple HTML tag removal
-                text = re.sub(r'<[^>]+>', '', html)
+                # More robust HTML tag removal - handles tags with attributes
+                text = re.sub(r'<[^<>]+>', '', html)
+                # Clean up extra whitespace
+                text = re.sub(r'\s+', ' ', text)
                 return text.strip()
         except Exception as e:
             logger.error(f"Error reading Markdown {file_path}: {e}")
@@ -337,10 +356,15 @@ class SimpleDocumentProcessor:
                     context_end = min(len(doc_info.content), match["end"] + 150)
                     context = doc_info.content[context_start:context_end]
                     
-                    # Highlight the match in context
-                    context_highlight = context.replace(
-                        match["matched_text"],
-                        f"**{match['matched_text']}**"
+                    # Highlight the match in context using position-based approach
+                    # Calculate relative position within context window
+                    match_start_in_context = match["start"] - context_start
+                    match_end_in_context = match["end"] - context_start
+                    
+                    context_highlight = (
+                        context[:match_start_in_context] +
+                        f"**{match['matched_text']}**" +
+                        context[match_end_in_context:]
                     )
                     
                     results.append({
