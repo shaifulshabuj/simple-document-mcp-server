@@ -632,7 +632,7 @@ Examples:
     parser.add_argument(
         "--version",
         action="version",
-        version="Simple Document MCP Server 1.0.0"
+        version="Simple Document MCP Server 1.1.0"
     )
     
     return parser.parse_args()
@@ -672,7 +672,7 @@ async def main():
             write_stream,
             InitializationOptions(
                 server_name="simple-document-server",
-                server_version="1.0.0",
+                server_version="1.1.0",
                 capabilities=server.get_capabilities(
                     notification_options=NotificationOptions(),
                     experimental_capabilities={},
